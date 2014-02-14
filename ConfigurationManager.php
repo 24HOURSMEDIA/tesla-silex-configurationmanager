@@ -12,7 +12,7 @@ use Symfony\Component\Filesystem\Filesystem;
 use Tesla\Silex\ConfigurationManager\Exception\ConfigurationException;
 
 
-class ConfigurationManager
+class ConfigurationManager extends \ArrayObject
 {
 
     private $parameters = array();
@@ -43,7 +43,7 @@ class ConfigurationManager
         }
     }
 
-    protected function load()
+    public function load()
     {
         if ($this->isLoaded) {
             return;
@@ -83,7 +83,12 @@ class ConfigurationManager
         //}
         $this->config = json_decode($encoded, true);
         $t = microtime(true) - $t;
-        // echo($t);
+
+        // append to array object
+        foreach ($this->config as $k => $v) {
+            $this->offsetSet($k, $v);
+        }
+
         $this->isLoaded = true;
     }
 
