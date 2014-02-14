@@ -1,0 +1,23 @@
+{
+    "name": "24hoursmedia/tesla-silex-configurationmanager",
+    "description": "configuration manager for sylex",
+    "type": "library",
+    "authors": [
+        {
+            "name": "E.Bachman",
+            "email": "eba@24hoursmedia.com"
+        }
+    ],
+    "keywords": [],
+    "homepage": "http://www.24hoursmedia.com/tesla",
+    "license": [
+        "MIT"
+    ],
+    "autoload": {
+        "psr-0": {
+            "Tesla\\Silex\\ConfigurationManager": ""
+        }
+    },
+    "target-dir": "Tesla/Silex/ConfigurationManager",
+    "minimum-stability": "stable"
+}
