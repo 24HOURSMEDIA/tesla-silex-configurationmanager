@@ -10,23 +10,28 @@ namespace Tesla\Silex\ConfigurationManager;
 
 use Symfony\Component\Filesystem\Filesystem;
 use Tesla\Silex\ConfigurationManager\Exception\ConfigurationException;
-
+use Symfony\Component\Finder\Finder;
 
 class ConfigurationManager extends \ArrayObject
 {
 
     private $parameters = array();
     private $config = null;
-    private $parameterFile;
+    private $parameterFiles = array();
     private $isLoaded = false;
     private $confFiles = array();
 
     public function __construct($parameterFile)
     {
+        if (!is_array($parameterFile)) {
+            $parameterFile = array($parameterFile);
+        }
         $fs = new Filesystem();
-        $this->parameterFile = $parameterFile;
-        if (!$fs->exists($parameterFile)) {
-            throw new ConfigurationException('parameter file or configuration directory not found');
+        foreach ($parameterFile as $path) {
+            if (!$fs->exists($path)) {
+                throw new ConfigurationException('parameter file ' . $path . ' or configuration directory not found');
+            }
+            $this->parameterFiles[] = $path;
         }
 
     }
@@ -43,31 +48,62 @@ class ConfigurationManager extends \ArrayObject
         }
     }
 
+    function registerConfigFilesInDirectories($dirs) {
+
+        $finder = new Finder();
+        $files = array();
+
+        foreach ($finder->files()->in($dirs)->name('/(.*)(.ini|.json)$/')->sortByName() as $file) {
+           $files[]= $file->getRealPath();
+        }
+        $this->registerConfigFiles($files);
+
+    }
+
+    /**
+     * Loads a file and parses it into an array
+     * supported are .ini files (sections are parsed as keys) and .json files
+     *
+     * @param $path
+     * @return array
+     * @throws \Exception
+     */
+    protected function parseFile($path) {
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $results = array();
+        switch ($ext) {
+            case 'json':
+                $results= json_decode(file_get_contents($path), true);
+            break;
+            case 'ini':
+                $results= parse_ini_file($path, true);
+            break;
+            throw new \Exception('Config file extension ' . $ext . ' not supported');
+        }
+        return $results;
+    }
+
     public function load()
     {
         if ($this->isLoaded) {
             return;
         }
 
+        // first, load 'parameters' from the parameters files..
         $t = microtime(true);
-        $parameters = json_decode(file_get_contents($this->parameterFile));
-        if (!$parameters) {
-            throw new \Exception('Could not load parameters file ' . $parameterFile);
+        $parameters = array();
+        foreach ($this->parameterFiles as $path) {
+            $parameters = array_merge_recursive($parameters, $this->parseFile($path));
         }
+        $this->parameters = $parameters;
 
-        foreach (get_object_vars($parameters) as $property => $value) {
-            $this->parameters[$property] = $value;
-        }
         // load all config files
         $config = array();
         foreach ($this->confFiles as $file) {
-            $f = json_decode(file_get_contents($file), true);
-            if (!$f) {
-                throw new ConfigurationException('Could not parse config file ' . $file);
-            }
-            $config = array_replace_recursive($config, $f);
-
+            $config = array_replace_recursive($config, $this->parseFile($file));
         }
+
+        // replace parameter strings
         $encoded = json_encode($config);
         foreach ($this->parameters as $k => $v) {
             if (!is_array($v) && !is_object($v)) {
@@ -78,17 +114,12 @@ class ConfigurationManager extends \ArrayObject
                 }
             }
         }
-        //if (false !== strpos($encoded, '%')) {
-        //    throw new ConfigurationException('Unresolved parameters found in configuration.');
-        //}
         $this->config = json_decode($encoded, true);
         $t = microtime(true) - $t;
-
         // append to array object
         foreach ($this->config as $k => $v) {
             $this->offsetSet($k, $v);
         }
-
         $this->isLoaded = true;
     }
 
