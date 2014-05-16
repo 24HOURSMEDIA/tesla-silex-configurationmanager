@@ -3,6 +3,15 @@ tesla-silex-configurationmanager
 
 Configuration manager for Silex projects
 
+## Installation
+
+Add to your composer.json:
+
+```
+"require": {
+        "24hoursmedia/tesla-silex-configurationmanager": "0.1.1"
+    },
+```
 
 ## General Usage
 
