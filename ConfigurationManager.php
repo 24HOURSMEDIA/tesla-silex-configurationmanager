@@ -56,6 +56,7 @@ class ConfigurationManager extends \ArrayObject
         foreach ($finder->files()->in($dirs)->name('/(.*)(.ini|.json)$/')->sortByName() as $file) {
            $files[]= $file->getRealPath();
         }
+
         $this->registerConfigFiles($files);
 
     }
@@ -100,7 +101,7 @@ class ConfigurationManager extends \ArrayObject
         // load all config files
         $config = array();
         foreach ($this->confFiles as $file) {
-            $config = array_replace_recursive($config, $this->parseFile($file));
+            $config = array_merge_recursive($config, $this->parseFile($file));
         }
 
         // replace parameter strings
